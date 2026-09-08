@@ -18,30 +18,29 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Extract project ZIP and Locate Gradle
+      - name: Extract ZIP automatically
         shell: bash
         run: |
           set -e
-          ZIP_FILE="GroupFinanceV6_PROJECT_ONLY.zip"
-          test -f "$ZIP_FILE"
-          echo "Extracting ZIP..."
-          mkdir -p extracted_files
-          unzip -q "$ZIP_FILE" -d extracted_files
-          
-          # Find where gradlew is hidden inside extracted files and copy project contents to root
-          INNER_DIR=$(find extracted_files -name "gradlew" -type f -exec dirname {} \;)
-          if [ -n "$INNER_DIR" ]; then
-            echo "Found gradlew in: $INNER_DIR"
-            shopt -s dotglob
-            cp -r "$INNER_DIR"/* ./
-            shopt -u dotglob
+          # البحث عن أي ملف مضغوط zip في المستودع وفكه تلقائياً
+          ZIP_FILE=$(find . -maxdepth 1 -name "*.zip" | head -n 1)
+          if [ -n "$ZIP_FILE" ]; then
+            echo "Found ZIP file: $ZIP_FILE, extracting..."
+            mkdir -p extracted_files
+            unzip -q "$ZIP_FILE" -d extracted_files
+            
+            # نقل الملفات المستخرجة إلى الجذر
+            INNER_DIR=$(find extracted_files -mindepth 1 -maxdepth 1 -type d | head -n 1)
+            if [ -n "$INNER_DIR" ]; then
+              shopt -s dotglob
+              mv "$INNER_DIR"/* ./
+              shopt -u dotglob
+            else
+              cp -r extracted_files/* ./
+            fi
           else
-            echo "Gradlew not found via find, copying all..."
-            cp -r extracted_files/* ./
+            echo "No zip file found, assuming files are already in root."
           fi
-          
-          echo "Verifying gradlew exists in root:"
-          ls -la gradlew
 
       - name: Set up Java 17
         uses: actions/setup-java@v4
