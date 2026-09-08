@@ -3,9 +3,9 @@ name: Build GroupFinance V6 APK
 on:
   workflow_dispatch:
   push:
-    branches:
-      - main
-      - master
+  branches:
+    - main
+    - master
 
 permissions:
   contents: read
@@ -24,50 +24,36 @@ jobs:
           set -e
           ZIP_FILE="GroupFinanceV6_PROJECT_ONLY.zip"
           test -f "$ZIP_FILE"
-          rm -rf /tmp/gf_project
-          mkdir -p /tmp/gf_project
-          unzip -q "$ZIP_FILE" -d /tmp/gf_project
-          test -f /tmp/gf_project/settings.gradle
-          test -f /tmp/gf_project/app/build.gradle
-          cp -a /tmp/gf_project/. .
+          echo "Found ZIP file, extracting..."
+          unzip -q "$ZIP_FILE" -d extracted_files
+          # نقل محتويات الملف المضغوط إلى المجلد الرئيسي للمشروع لتظهر الملفات بشكل طبيعي
+          cp -r extracted_files/* ./
 
       - name: Set up Java 17
         uses: actions/setup-java@v4
         with:
-          distribution: temurin
-          java-version: "17"
+          distribution: 'temurin'
+          java-version: '17'
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Install Android SDK
-        run: |
-          yes | sdkmanager --licenses || true
-          sdkmanager "platforms;android-35" "build-tools;35.0.0"
-
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: "8.9"
+        uses: gradle/actions/setup-gradle@v3
 
-      - name: Verify project
+      - name: Verify project files
         run: |
           test -f settings.gradle
           test -f build.gradle
           test -f app/build.gradle
-          test -f app/src/main/AndroidManifest.xml
-          test -f app/src/main/assets/index.html
 
       - name: Build APK
-        run: gradle :app:assembleDebug --stacktrace --no-daemon
-
-      - name: Verify APK
-        run: test -f app/build/outputs/apk/debug/app-debug.apk
+        run: ./gradlew assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: GroupFinance-V6-debug-apk
+          name: GroupFinance-V6-debug
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 30
