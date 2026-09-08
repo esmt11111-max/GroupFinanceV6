@@ -18,33 +18,30 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Extract project ZIP and Debug
+      - name: Extract project ZIP and Locate Gradle
         shell: bash
         run: |
           set -e
           ZIP_FILE="GroupFinanceV6_PROJECT_ONLY.zip"
-          echo "Listing repository files:"
-          ls -la
           test -f "$ZIP_FILE"
           echo "Extracting ZIP..."
           mkdir -p extracted_files
           unzip -q "$ZIP_FILE" -d extracted_files
-          echo "Contents of extracted_files:"
-          ls -la extracted_files
           
-          # Flatten structure automatically
-          INNER_DIR=$(find extracted_files -mindepth 1 -maxdepth 1 -type d | head -n 1)
+          # Find where gradlew is hidden inside extracted files and copy project contents to root
+          INNER_DIR=$(find extracted_files -name "gradlew" -type f -exec dirname {} \;)
           if [ -n "$INNER_DIR" ]; then
-            echo "Moving contents from $INNER_DIR to root..."
+            echo "Found gradlew in: $INNER_DIR"
             shopt -s dotglob
-            mv "$INNER_DIR"/* ./
+            cp -r "$INNER_DIR"/* ./
             shopt -u dotglob
           else
+            echo "Gradlew not found via find, copying all..."
             cp -r extracted_files/* ./
           fi
           
-          echo "Root files after extraction:"
-          ls -la
+          echo "Verifying gradlew exists in root:"
+          ls -la gradlew
 
       - name: Set up Java 17
         uses: actions/setup-java@v4
