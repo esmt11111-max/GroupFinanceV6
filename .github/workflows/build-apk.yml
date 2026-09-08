@@ -25,8 +25,17 @@ jobs:
           ZIP_FILE="GroupFinanceV6_PROJECT_ONLY.zip"
           test -f "$ZIP_FILE"
           echo "Found ZIP file, extracting..."
+          mkdir -p extracted_files
           unzip -q "$ZIP_FILE" -d extracted_files
-          cp -r extracted_files/* ./
+          INNER_DIR=$(find extracted_files -mindepth 1 -maxdepth 1 -type d | head -n 1)
+          if [ -n "$INNER_DIR" ]; then
+            echo "Moving contents from $INNER_DIR to root..."
+            shopt -s dotglob
+            mv "$INNER_DIR"/* ./
+            shopt -u dotglob
+          else
+            cp -r extracted_files/* ./
+          fi
 
       - name: Set up Java 17
         uses: actions/setup-java@v4
@@ -38,7 +47,7 @@ jobs:
         uses: android-actions/setup-android@v3
 
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v3
+        uses: gradle/actions/setup-gradle@v1
 
       - name: Verify project files
         run: |
