@@ -3,9 +3,9 @@ name: Build GroupFinance V6 APK
 on:
   workflow_dispatch:
   push:
-  branches:
-    - main
-    - master
+    branches:
+      - main
+      - master
 
 permissions:
   contents: read
@@ -26,7 +26,6 @@ jobs:
           test -f "$ZIP_FILE"
           echo "Found ZIP file, extracting..."
           unzip -q "$ZIP_FILE" -d extracted_files
-          # نقل محتويات الملف المضغوط إلى المجلد الرئيسي للمشروع لتظهر الملفات بشكل طبيعي
           cp -r extracted_files/* ./
 
       - name: Set up Java 17
