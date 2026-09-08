@@ -15,48 +15,51 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Extract ZIP automatically
+      - name: Extract new project
         shell: bash
         run: |
           set -e
-          # البحث عن أي ملف مضغوط zip في المستودع وفكه تلقائياً
-          ZIP_FILE=$(find . -maxdepth 1 -name "*.zip" | head -n 1)
-          if [ -n "$ZIP_FILE" ]; then
-            echo "Found ZIP file: $ZIP_FILE, extracting..."
-            mkdir -p extracted_files
-            unzip -q "$ZIP_FILE" -d extracted_files
-            
-            # نقل الملفات المستخرجة إلى الجذر
-            INNER_DIR=$(find extracted_files -mindepth 1 -maxdepth 1 -type d | head -n 1)
-            if [ -n "$INNER_DIR" ]; then
-              shopt -s dotglob
-              mv "$INNER_DIR"/* ./
-              shopt -u dotglob
-            else
-              cp -r extracted_files/* ./
-            fi
-          else
-            echo "No zip file found, assuming files are already in root."
-          fi
+          ZIP_FILE="GroupFinanceV6_NEW_CLEAN.zip"
+          test -f "$ZIP_FILE"
+          mkdir -p /tmp/gf_project
+          unzip -q "$ZIP_FILE" -d /tmp/gf_project
+          test -f /tmp/gf_project/settings.gradle
+          test -f /tmp/gf_project/build.gradle
+          test -f /tmp/gf_project/app/build.gradle
+          cp -a /tmp/gf_project/. .
 
-      - name: Set up Java 17
+      - name: Java 17
         uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
-          java-version: '17'
+          distribution: temurin
+          java-version: "17"
+
+      - name: Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install SDK
+        run: |
+          yes | sdkmanager --licenses || true
+          sdkmanager "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Gradle 8.9
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.9"
 
       - name: Build APK
-        run: |
-          chmod +x ./gradlew
-          ./gradlew assembleDebug
+        run: gradle :app:assembleDebug --stacktrace --no-daemon
+
+      - name: Check APK
+        run: test -f app/build/outputs/apk/debug/app-debug.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: GroupFinance-V6-debug
+          name: GroupFinance-V6-APK
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 30
